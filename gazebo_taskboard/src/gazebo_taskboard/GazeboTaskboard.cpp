@@ -29,7 +29,7 @@ using namespace gazebo_taskboard;
 const double POWER_COVER_JOINT_THRESHOLD = M_PI/4;
 
 /// @brief the material for led in OFF state
-const std::string LED_MATERIAL_OFF = "Gazebo/Grey";
+const std::string LED_MATERIAL_OFF = "Gazebo/Gray";
 /// @brief the material for green led
 const std::string LED_MATERIAL_GREEN = "Gazebo/GreenGlow";
 /// @brief the material for blue led
@@ -45,9 +45,9 @@ const double NUMPAD_LED_LENGTH = 0.0004;
 const double NUMPAD_LED_RADIUS = 0.0095;
 
 /// @brief z coordinate offset for hiding led model in ON state
-const double LED_HIDE_OFFSET = 100.0;
+const double LED_HIDE_OFFSET = 1.0; //100.0;
 /// @brief the z coordinate offset for hiding led model in OFF state
-const double LED_HIDE_OFFSET2 = 105.0;
+const double LED_HIDE_OFFSET2 = 1.5; //105.0;
 
 /// @brief upper limit for A03/A04/A05 toggles as defined in URDF
 const double SAFE_TOGGLE_UPPER_LIMIT_ANGLE = 0.0;
@@ -547,7 +547,7 @@ void GazeboTaskboardSlot1::DeriveStateFromModel()
  * to function as an active object.
  */
 void GazeboTaskboardSlot1::OnUpdate()
-{
+{ 
     // If condition is true then LED models are available and
     // we should set them up properly
     if (firstFrameInitializationDone && !ledsReady)
@@ -565,17 +565,14 @@ void GazeboTaskboardSlot1::OnUpdate()
         firstFrameInitializationDone = true;
         return;
     }
-
     // Monitor state changes in taskboard elements and simulate expected behavior
     MonitorPowerCoverStateChanges();
     MonitorPowerSwitchStateChanges();
     MonitorRockerSwitchA01StateChanges();
     MonitorNumpadStateChanges();
     MonitorSafeTogglesStateChanges();
-
     // Process external manipulation
     HandleManipulation();
-
     // Spin the wheel! Make sure all topic messages are sent
     ros::spinOnce();
 }
@@ -588,7 +585,6 @@ void GazeboTaskboardSlot1::MonitorPowerCoverStateChanges()
     ignition::math::Pose3d pose = linkPowerCover->RelativePose();
     const double angle = pose.Rot().Roll();
     const double threshold = deg2rad(1.0);
-
     if (angle > threshold && angle < M_PI_2 - threshold)
     {
         ignition::math::Vector3<double> torque = computeEmpiricalTorque(angle - POWER_COVER_JOINT_THRESHOLD, 1.0, 1.0, 1.5, 15);
@@ -1038,7 +1034,7 @@ void GazeboTaskboardSlot1::PublishState()
  * @param on true to turn on the LED, false to turn off the LED
  */
 void GazeboTaskboardSlot1::SetLedState(Led& led, bool on)
-{
+{  printf("Set led state !! \n");
     // Do nothing if the led is already in the requested state
     if (led.isOn == on)
     {
@@ -1053,10 +1049,13 @@ void GazeboTaskboardSlot1::SetLedState(Led& led, bool on)
     // Get current pose
     ignition::math::Pose3d pose = led.onModel->RelativePose();
     ignition::math::Pose3d pose2 = led.offModel->RelativePose();
+    printf("Updating poses for on and off... %f %f %f and %f %f %f \n",
+    pose.Pos().X(), pose.Pos().Y(), pose.Pos().Z(),
+    pose2.Pos().X(), pose2.Pos().Y(), pose2.Pos().Z());
 
     // Update pose based on new LED state
     if (on)
-    {
+    {  printf("Should update for ON!!! \n");
         pose.Pos().Z() -= LED_HIDE_OFFSET;
         pose2.Pos().Z() += LED_HIDE_OFFSET2;
     }
@@ -1064,9 +1063,19 @@ void GazeboTaskboardSlot1::SetLedState(Led& led, bool on)
     {
         pose.Pos().Z() += LED_HIDE_OFFSET;
         pose2.Pos().Z() -= LED_HIDE_OFFSET2;
-    }
-    led.onModel->SetLinkWorldPose(pose, led.onLinkName);
-    led.offModel->SetLinkWorldPose(pose2, led.offLinkName);
+    } 
+        printf("Updated poses for %s and %s on and off... %f %f %f and %f %f %f \n", led.onLinkName.c_str(), led.offLinkName.c_str(),
+    pose.Pos().X(), pose.Pos().Y(), pose.Pos().Z(),
+    pose2.Pos().X(), pose2.Pos().Y(), pose2.Pos().Z());
+
+    
+    //led.onModel->SetLinkWorldPose(pose, led.onModel->GetLink(led.onLinkName));
+    //led.offModel->SetLinkWorldPose(pose2, led.offModel->GetLink(led.offLinkName));
+    led.onModel->SetRelativePose(pose); // led.onLinkName);
+    led.offModel->SetRelativePose(pose2); // led.offLinkName);
+    led.onModel->Update();
+    led.offModel->Update();
+    
     led.isOn = on;
 }
 
@@ -1078,6 +1087,7 @@ void GazeboTaskboardSlot1::TurnOnLeds()
     if (state->powerSwitchState == eTwoWayState_Up)
     {
         // Power switch LED
+        printf("Setting led state of power switch to be true!! \n");
         SetLedState(leds->powerSwitchLed, true);
 
         // Rocker switch LEDs
@@ -1453,25 +1463,76 @@ GazeboTaskboardSlot1::Led::Led(int index_, bool numPadLed_, LedColor color_, ign
  * @param world the physics world instance
  */
 void GazeboTaskboardSlot1::Led::CreateModel(physics::WorldPtr world)
-{
+{/*
     const std::string sdfTemplate =
-        "<gazebo version ='1.0'>\
-            <model name ='MODELNAME' static='1'>\
-                <origin pose='%1% %2% ZPOS %3% %4% %5%'/>\
-                <link name ='LINKNAME' kinematic='1'>\
+        "<sdf version ='1.7'>\
+            <model name ='MODELNAME' >\
+                <static>true</static> \
+                <pose>%1% %2% ZPOS %3% %4% %5%</pose>\
+                <link name ='LINKNAME'> \
+                    <kinematic>true</kinematic> \
                     <collision name='COLLISIONNAME'>\
                         <geometry>GEOMETRY</geometry>\
                     </collision>\
                     <visual name='VISUALNAME'>\
                         <geometry>GEOMETRY</geometry>\
-                        <material script='MATERIAL'/>\
+                        <material> \
+                          <script> \
+                            <uri>file://media/materials/scripts/gazebo.material</uri> \
+                            <name>MATERIAL</name> \
+                          </script> \
+                        </material> \
                     </visual>\
-                    <inertial mass='0.5'> \
-                        <inertia ixx='1' ixy='0.0' ixz='0.0' iyy='1' iyz='0.0' izz='1'/>\
-                    </inertial>\
+                    <inertial>  \
+                        <mass>0.5</mass> \
+                        <inertia> \
+                         <ixx>1</ixx> \
+                         <ixy>0.0</ixy> \
+                         <ixz>0.0</ixz> \
+                         <iyy>1</iyy> \
+                         <iyz>0.0</iyz> \
+                         <izz>1</izz> \
+                         </inertia> \
+                    </inertial> \
                 </link>\
             </model>\
-        </gazebo>";
+        </sdf>";*/
+
+    const std::string sdfTemplate =
+        "<sdf version ='1.7'>\
+            <model name ='MODELNAME' >\
+                <static>false</static>\
+                <pose>%1% %2% ZPOS %3% %4% %5%</pose>\
+                <link name ='LINKNAME'>\
+                    <gravity>false</gravity> \
+                    <kinematic>true</kinematic>\
+                    <collision name=\"collision\">\
+                        <geometry>GEOMETRY</geometry>\
+                    </collision>\
+                    <visual name=\"visual\">\
+                        <geometry>GEOMETRY</geometry>\
+                        <material>\
+                          <script>\
+                            <uri>file://media/materials/scripts/gazebo.material</uri>\
+                            <name>MATERIAL</name>\
+                          </script>\
+                        </material>\
+                    </visual>\
+                    <inertial> \
+                        <mass>0.5</mass> \
+                        <inertia> \
+                         <ixx>1</ixx> \
+                         <ixy>0.0</ixy> \
+                         <ixz>0.0</ixz> \
+                         <iyy>1</iyy> \
+                         <iyz>0.0</iyz> \
+                         <izz>1</izz> \
+                         </inertia> \
+                    </inertial> \
+                </link>\
+            </model>\
+        </sdf>";
+
 
     // Figure out LED's material based on its color
     const std::string material = (color == eLedColor_Green) ? LED_MATERIAL_GREEN
@@ -1479,21 +1540,24 @@ void GazeboTaskboardSlot1::Led::CreateModel(physics::WorldPtr world)
     // Create model and link names
     const std::string ledNameBase = boost::str(boost::format("taskboardLed%1%") % index);
     const std::string ledLinkNameBase = boost::str(boost::format("taskboardLedLink%1%") % index);
-    const std::string ledCollisionNameBase = boost::str(boost::format("taskboardLedCollision%1%") % index);
-    const std::string ledVisualNameBase = boost::str(boost::format("taskboardLedVisual%1%") % index);
+    //const std::string ledCollisionNameBase = boost::str(boost::format("taskboardLedCollision%1%") % index);
+    //const std::string ledVisualNameBase = boost::str(boost::format("taskboardLedVisual%1%") % index);
 
     const std::string ledName = ledNameBase + "_ON";
     const std::string ledName2 = ledNameBase + "_OFF";
     const std::string ledLinkName = ledLinkNameBase + "_ON";
     const std::string ledLinkName2 = ledLinkNameBase + "_OFF";
-    const std::string ledCollisionName = ledCollisionNameBase + "_ON";
-    const std::string ledCollisionName2 = ledCollisionNameBase + "_OFF";
-    const std::string ledVisualName = ledVisualNameBase + "_ON";
-    const std::string ledVisualName2 = ledVisualNameBase + "_OFF";
+    //const std::string ledCollisionName = ledCollisionNameBase + "_ON";
+    //const std::string ledCollisionName2 = ledCollisionNameBase + "_OFF";
+    //const std::string ledVisualName = ledVisualNameBase + "_ON";
+    //const std::string ledVisualName2 = ledVisualNameBase + "_OFF";
 
     // Get LED model description depending on LED type
     std::string ledModel;
-    ledModel = boost::str(boost::format("<cylinder length='%1%' radius='%2%'/>")
+    ledModel = boost::str(boost::format("<cylinder> \
+     					 <radius>%2%</radius> \
+     					 <length>%1%</length> \
+     					 </cylinder>")
                               % (numPadLed ? NUMPAD_LED_LENGTH : SIMPLE_LED_LENGTH)
                               % (numPadLed ? NUMPAD_LED_RADIUS : SIMPLE_LED_RADIUS));
 
@@ -1510,8 +1574,8 @@ void GazeboTaskboardSlot1::Led::CreateModel(physics::WorldPtr world)
     boost::replace_all(xml, "MODELNAME", ledName);
     boost::replace_all(xml, "ZPOS", boost::str(boost::format("%1%") % (pose.Pos().Z() + LED_HIDE_OFFSET)));
     boost::replace_all(xml, "LINKNAME", ledLinkName);
-    boost::replace_all(xml, "COLLISIONNAME", ledCollisionName);
-    boost::replace_all(xml, "VISUALNAME", ledVisualName);
+    //boost::replace_all(xml, "COLLISIONNAME", ledCollisionName);
+    //boost::replace_all(xml, "VISUALNAME", ledVisualName);
     boost::replace_all(xml, "GEOMETRY", ledModel);
     boost::replace_all(xml, "MATERIAL", material);
 
@@ -1519,8 +1583,8 @@ void GazeboTaskboardSlot1::Led::CreateModel(physics::WorldPtr world)
     boost::replace_all(xml2, "MODELNAME", ledName2);
     boost::replace_all(xml2, "ZPOS", boost::str(boost::format("%1%") % (pose.Pos().Z() + LED_HIDE_OFFSET2)));
     boost::replace_all(xml2, "LINKNAME", ledLinkName2);
-    boost::replace_all(xml2, "COLLISIONNAME", ledCollisionName2);
-    boost::replace_all(xml2, "VISUALNAME", ledVisualName2);
+    //boost::replace_all(xml2, "COLLISIONNAME", ledCollisionName2);
+    //boost::replace_all(xml2, "VISUALNAME", ledVisualName2);
     boost::replace_all(xml2, "GEOMETRY", ledModel);
     boost::replace_all(xml2, "MATERIAL", LED_MATERIAL_OFF);
 
@@ -1621,6 +1685,7 @@ GazeboTaskboardSlot1::TaskboardLeds::TaskboardLeds(const ignition::math::Pose3d&
     {
         const LedsInfo &info = ledsInfo[i];
         const ignition::math::Pose3d pose(modelPose.Pos() + modelPose.Rot() * info.offset, modelPose.Rot() * rot);
+
         info.led = Led(i, info.numPadLed, info.color, pose);
     }
 }

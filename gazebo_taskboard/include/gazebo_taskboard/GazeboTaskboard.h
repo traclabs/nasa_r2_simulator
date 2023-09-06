@@ -31,7 +31,7 @@ namespace gazebo
    /**
     * @brief The GazeboTaskboardSlot1 class represents a controller for taskboard model (slot1).
     *
-    * It is implemented as gazebo ModelPlugin, the instane of this class is associated with
+    * It is implemented as gazebo ModelPlugin, the instance of this class is associated with
     * taskboard model by the ROS gazebo plugin. The controller is responsible for simulating taskboard
     * behavior in reaction to external influences in similar way as it happens for real ISS taskboard.
     *
