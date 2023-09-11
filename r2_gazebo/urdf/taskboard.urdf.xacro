@@ -2,8 +2,15 @@
 
 <robot name="taskboard" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <xacro:arg name="x" default="0.0"/>
+  <xacro:arg name="y" default="0.0"/>
+  <xacro:arg name="z" default="0.0"/>
+  <xacro:arg name="roll" default="0.0"/>
+  <xacro:arg name="pitch" default="0.0"/>
+  <xacro:arg name="yaw" default="0.0"/>
 
   <xacro:include filename="$(find r2_gazebo)/urdf/taskboard.lower.xacro" />
   <!--<xacro:include filename="$(find r2_gazebo)/urdf/gazebo_plugins/gazebo_interface.xacro" />-->
+  <xacro:include filename="$(find r2_gazebo)/urdf/gazebo_plugins/taskboard_gazebo_interface.xacro" />
 
  </robot>

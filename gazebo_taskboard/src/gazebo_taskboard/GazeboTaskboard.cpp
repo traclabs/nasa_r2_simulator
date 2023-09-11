@@ -373,7 +373,9 @@ void GazeboTaskboardSlot1::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     manipulationState.reset(new ManipulationState);
 
     //  Initialize LEDs
-    leds.reset(new TaskboardLeds(model->WorldPose()));
+    //leds.reset(new TaskboardLeds(model->WorldPose()));
+    leds.reset(new TaskboardLeds(model->GetLink("dummy")->WorldPose()));
+
 
     // Initialize controller according to the model state
     state.reset(new TaskboardSlot1State);

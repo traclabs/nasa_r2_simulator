@@ -881,7 +881,7 @@
   <joint name="world/dummy" type="fixed">
     <parent link="world"/>
     <child link="dummy"/>
-    <origin rpy="0.0 0 0" xyz="0.0 0.0 0.0"/>
+    <origin rpy="$(arg roll) $(arg pitch) $(arg yaw)" xyz="$(arg x) $(arg y) $(arg z)"/>
   </joint>
 
   <joint name="dummy/taskboard_lower" type="fixed">

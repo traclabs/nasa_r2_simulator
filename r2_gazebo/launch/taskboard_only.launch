@@ -24,7 +24,7 @@
   <node name="spawn_taskboard_B01" pkg="gazebo_ros" type="spawn_model" args="-urdf -param taskboard_B01_description -model taskboard_B01" respawn="false" output="screen"/>
   <node name="spawn_taskboard_B05" pkg="gazebo_ros" type="spawn_model" args="-urdf -param taskboard_B05_description -model taskboard_B05" respawn="false" output="screen"/>-->
 
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="taskboard_state_publisher" >
     <remap from="robot_description" to="taskboard_description" />
   </node>
 
